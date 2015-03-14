@@ -18,10 +18,13 @@ public class Server {
 	static int[] allViews = new int[Server.numberCards];
 	
 	public static ExecutorService pool = Executors.newSingleThreadExecutor();
+	
+	public static ExecutorService check = Executors.newSingleThreadExecutor();
 
 	public static void main(String[] args)
 	{
 		initCards();
+		initViews();
 		try {
 			server = new ServerSocket(serverPort);
 			while (true)
@@ -60,6 +63,23 @@ public class Server {
 		}
 		return ans;
 	}
+	
+	public static void checkSet(){
+		boolean noPossible = false;
+		Future<Boolean> tmp = check.submit(new Check());
+		try {
+			noPossible = tmp.get();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
+		if (noPossible)
+		{
+			System.out.println("No set");
+			restartGame();
+		}
+	}
 
 	public static void updateView(int[] views)
 	{
@@ -70,14 +90,27 @@ public class Server {
 			s.append(' ');
 			s.append(views[i]);
 			s.append(' ');
-			int card = cards.poll();
-			currentCards[views[i]] = card;
-			s.append(card);
+			int card = 0;
+			try
+			{
+				card = cards.poll();
+			}
+			catch (Exception e)
+			{
+				System.out.println("Another round");
+				initCards();
+				card = cards.poll();
+			}
+			finally
+			{
+				currentCards[views[i]] = card;
+				s.append(card);
+			}
 		}
 		String msg = s.toString();
-		System.out.println(msg);
 		for (Socket client : clients)
 		{
+			System.out.println(client.toString() + msg);
 			try {
 				PrintWriter output = new PrintWriter(client.getOutputStream(),	true);
 				output.println(msg);
@@ -86,7 +119,7 @@ public class Server {
 			}
 		}
 	}
-
+	
 	public static void initCards(){
 		int[][] temp = new int[81][2];
 		Random rand = new Random();
@@ -109,11 +142,43 @@ public class Server {
 		for(int i = 0 ; i < 81 ; i++){
 			cards.add(temp[i][0]);
 		}
+	}
+	
+	public static void initViews(){
 		for (int i = 0 ; i < numberCards ; i++)
 		{
 			currentCards[i] = cards.poll();
 			allViews[i] = i;
 		}
+	}
+	
+	public static void restartGame(){
+		initCards();
+		initViews();
+		updateView(Server.allViews);
+	}
+
+	public static boolean isSet(int a, int b, int c) {
+		int[][] set = new int[3][4];
+		for (int i = 0 ; i < 4 ; i++)
+		{
+			set[0][i] = a % 3;
+			a /= 3;
+			set[1][i] = b % 3;
+			b /= 3;
+			set[2][i] = c % 3;
+			c /= 3;
+		}
+		for (int i = 0 ; i < 3 ; i++)
+		{
+			int x ,y ,z;
+            x = set[0][i];
+            y = set[1][i];
+            z = set[2][i];
+            if (!((x == y && y == z && z == x) || (x != y && y != z && z != x)))
+            	return false;
+		}
+		return true;
 	}
 
 }
@@ -136,7 +201,22 @@ class Judge implements Callable<Boolean>{
 			if (Server.judgedCards.contains(i))
 				return false;
 		}
+		for (int i : set)
+			Server.judgedCards.add(i);
 		return true;
+	}
+}
+
+class Check implements Callable<Boolean>{
+
+	@Override
+	public Boolean call() throws Exception {
+		for (int i = 0 ; i < Server.numberCards - 2 ; i++)
+			for (int j = i + 1 ; j < Server.numberCards - 1 ; j++)
+				for (int k = j + 1 ; k < Server.numberCards ; k++)
+					if (Server.isSet(i , j , k))
+						return true;
+		return false;
 	}
 }
 
@@ -170,7 +250,7 @@ class LoopThread extends Thread{
 						switch (task)
 						{
 						case 'R':
-							restartGame(output);
+							Server.restartGame();
 							break;
 						case 'S':
 							String msg = input.readLine();
@@ -265,9 +345,4 @@ class LoopThread extends Thread{
 		}
 	}
 	
-	void restartGame(PrintWriter output)
-	{
-		Server.initCards();
-		Server.updateView(Server.allViews);
-	}
 }
