@@ -81,8 +81,8 @@ public class Server {
 			catch (Exception e)
 			{
 				System.out.println("Another round");
-				initCards();
-				card = cards.poll();
+				restartGame();
+				return;
 			}
 			finally
 			{
@@ -101,6 +101,7 @@ public class Server {
 				e.printStackTrace();
 			}
 		}
+		checkSet();
 	}
 	
 	public static void initCards(){
@@ -170,7 +171,7 @@ public class Server {
 			set[2][i] = c % 3;
 			c /= 3;
 		}
-		for (int i = 0 ; i < 3 ; i++)
+		for (int i = 0 ; i < 4 ; i++)
 		{
 			int x ,y ,z;
             x = set[0][i];
@@ -215,7 +216,7 @@ class Check implements Callable<Boolean>{
 		for (int i = 0 ; i < Server.numberCards - 2 ; i++)
 			for (int j = i + 1 ; j < Server.numberCards - 1 ; j++)
 				for (int k = j + 1 ; k < Server.numberCards ; k++)
-					if (Server.isSet(i , j , k))
+					if (Server.isSet(Server.currentCards[i] , Server.currentCards[j] , Server.currentCards[k]))
 					{
 						System.out.format("Set: %d %d %d\n", i , j , k);
 						return true;
@@ -258,6 +259,7 @@ class LoopThread extends Thread{
 							break;
 						case 'S':
 							String msg = input.readLine();
+							System.out.println("Reveive: " + msg);
 							int[] set = new int[3];
 							int[] views = new int[3];
 							String[] s = msg.split(" ");
