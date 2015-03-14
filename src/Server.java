@@ -64,23 +64,6 @@ public class Server {
 		return ans;
 	}
 	
-	public static void checkSet(){
-		boolean noPossible = false;
-		Future<Boolean> tmp = check.submit(new Check());
-		try {
-			noPossible = tmp.get();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			e.printStackTrace();
-		}
-		if (noPossible)
-		{
-			System.out.println("No set");
-			restartGame();
-		}
-	}
-
 	public static void updateView(int[] views)
 	{
 		StringBuilder s = new StringBuilder();
@@ -150,8 +133,26 @@ public class Server {
 			currentCards[i] = cards.poll();
 			allViews[i] = i;
 		}
+		checkSet();
 	}
 	
+	public static void checkSet(){
+		boolean Possible = false;
+		Future<Boolean> tmp = check.submit(new Check());
+		try {
+			Possible = tmp.get();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
+		if (!Possible)
+		{
+			System.out.println("No set");
+			restartGame();
+		}
+	}
+
 	public static void restartGame(){
 		initCards();
 		initViews();
@@ -215,7 +216,10 @@ class Check implements Callable<Boolean>{
 			for (int j = i + 1 ; j < Server.numberCards - 1 ; j++)
 				for (int k = j + 1 ; k < Server.numberCards ; k++)
 					if (Server.isSet(i , j , k))
+					{
+						System.out.format("Set: %d %d %d\n", i , j , k);
 						return true;
+					}
 		return false;
 	}
 }
