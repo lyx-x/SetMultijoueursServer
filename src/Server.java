@@ -7,15 +7,16 @@ public class Server {
 
 	public static ServerSocket server;
 	static int serverPort = 8888;
-	static LinkedList<Socket> clients = new LinkedList<Socket>();
+	public static LinkedList<LoopThread> clients = new LinkedList<LoopThread>();
 
 	static HashSet<Integer> judgedCards = new HashSet<Integer>(81);
 	static LinkedList<Integer> cards = new LinkedList<Integer>();
 	
 
-	static final int numberCards = 15;
-	public static int[] currentCards = new int[numberCards];
-	static int[] allViews = new int[Server.numberCards];
+	static int numberCards = 12;
+	public static int[] currentCards = new int[15];
+	static int[] allViews = new int[15];
+	static boolean haveSetCard=false;
 	
 	public static ExecutorService pool = Executors.newSingleThreadExecutor();
 	
@@ -23,16 +24,28 @@ public class Server {
 
 	public static void main(String[] args)
 	{
+		InetAddress local;
+		try{
+			local=InetAddress.getLocalHost();
+			System.out.println(local);
+		}
+		catch(Exception e){
+			System.out.println(e);
+		}
 		initCards();
 		initViews();
+		haveSetCard=true;
 		try {
 			server = new ServerSocket(serverPort);
+			new FrozenThread().start();
+			
 			while (true)
 			{
 				Socket client = server.accept();
 				System.out.println(client);
-				clients.add(client);
-				new LoopThread(client, 100).start();
+				LoopThread lp = new LoopThread(client,100);
+				clients.add(lp);
+				lp.start();
 			}
 		} 
 		catch (Exception e) {
@@ -66,33 +79,71 @@ public class Server {
 	
 	public static void updateView(int[] views)
 	{
-		StringBuilder s = new StringBuilder();
-		s.append('V');
-		for (int i = 0 ; i < views.length ; i++)
-		{
-			s.append(' ');
-			s.append(views[i]);
-			s.append(' ');
-			int card = 0;
-			try
-			{
-				card = cards.poll();
-			}
-			catch (Exception e)
-			{
-				System.out.println("Another round");
-				restartGame();
-				return;
-			}
-			finally
-			{
-				currentCards[views[i]] = card;
-				s.append(card);
+		boolean[] l = {false, false, false};
+		int count = 0;
+		for(int i = 0 ; i < views.length; i++){
+			if (views[i] >= 12){
+				l[views[i] - 12] = true;
+				count++;
 			}
 		}
+		StringBuilder s = new StringBuilder();
+		s.append('V');
+		if (numberCards == 12 || count == 3){
+			for (int i = 0 ; i < views.length ; i++)
+			{
+				s.append(' ');
+				s.append(views[i]);
+				s.append(' ');
+				int card = 0;
+				try
+				{
+					card = cards.poll();
+				}
+				catch (Exception e)
+				{
+					System.out.println("Another round");
+					initCards();
+					card = cards.poll();
+				}
+				currentCards[views[i]] = card;
+				s.append(card);
+				if(count == 3)
+					numberCards = 15;
+				
+			}
+		}else{		
+			for(int i = 0 ; i < views.length ; i++){
+				s.append(' ');
+				s.append(views[i]);
+				s.append(' ');
+				if (views[i] >= 12){
+					s.append(-1);
+				}else{
+					int k = 0;
+					while(k < 3 && l[k]){
+						k++;
+					}
+					if(k<3){
+						s.append(currentCards[12 + k]);
+						currentCards[views[i]] = currentCards[12 + k];
+						l[k]=true;
+					}else{
+						System.out.println("set 15 cards wrong");
+					}
+					s.append(' ');
+					s.append(12 + k);
+					s.append(' ');
+					s.append(-1);
+				}
+			}
+			numberCards = 12;
+		}
 		String msg = s.toString();
-		for (Socket client : clients)
+		for (LoopThread lp : clients)
 		{
+			Socket client = lp.client;
+			lp.frozen = false;
 			System.out.println(client.toString() + msg);
 			try {
 				PrintWriter output = new PrintWriter(client.getOutputStream(),	true);
@@ -101,7 +152,8 @@ public class Server {
 				e.printStackTrace();
 			}
 		}
-		checkSet();
+		if(numberCards == 12)
+			checkSet();
 	}
 	
 	public static void initCards(){
@@ -124,7 +176,16 @@ public class Server {
 			}
 		}
 		for(int i = 0 ; i < 81 ; i++){
-			cards.add(temp[i][0]);
+			boolean f = true;
+			if(haveSetCard){
+				for(int j = 0; j < numberCards; i++){
+					if(temp[i][0] == currentCards[j]){
+						f = false;
+					}
+				}
+			}
+			if (f)
+				cards.add(temp[i][0]);
 		}
 	}
 	
@@ -150,7 +211,8 @@ public class Server {
 		if (!Possible)
 		{
 			System.out.println("No set");
-			restartGame();
+			int[] views = {12,13,14};
+			updateView(views);
 		}
 	}
 
@@ -173,7 +235,7 @@ public class Server {
 		}
 		for (int i = 0 ; i < 4 ; i++)
 		{
-			int x ,y ,z;
+			int x, y, z;
             x = set[0][i];
             y = set[1][i];
             z = set[2][i];
@@ -182,8 +244,10 @@ public class Server {
 		}
 		return true;
 	}
+	
 
 }
+
 
 class Judge implements Callable<Boolean>{
 
@@ -225,10 +289,45 @@ class Check implements Callable<Boolean>{
 	}
 }
 
+class FrozenThread extends Thread{
+	public void run()
+	{
+		while (true){
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			boolean f = true;
+			for(LoopThread lp : Server.clients){
+				if (!lp.frozen)
+					f = false;
+			}
+			if(f){
+				for (LoopThread lp : Server.clients)
+				{
+					Socket client = lp.client;
+					System.out.println(client.toString() + "M");
+					try {
+						PrintWriter output = new PrintWriter(client.getOutputStream(),	true);
+						output.println("M");
+						lp.frozen = false;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			
+		}
+	}
+}
+
 class LoopThread extends Thread{
 
 	long time = 0;
 	Socket client = null;
+	boolean frozen = false;
 
 	public LoopThread(Socket s, long t)
 	{
@@ -254,6 +353,9 @@ class LoopThread extends Thread{
 						input.read();
 						switch (task)
 						{
+						case 'F':
+							this.frozen = true;
+							break;
 						case 'R':
 							Server.restartGame();
 							break;
@@ -282,6 +384,8 @@ class LoopThread extends Thread{
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
+							Server.clients.remove(client);
+							System.out.println(Server.clients.size());
 							output.close();
 							return;
 						}
