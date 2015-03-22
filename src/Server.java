@@ -12,11 +12,10 @@ public class Server {
 	static HashSet<Integer> judgedCards = new HashSet<Integer>(81);
 	static LinkedList<Integer> cards = new LinkedList<Integer>();
 	
-
 	static int numberCards = 12;
 	public static int[] currentCards = new int[15];
 	static int[] allViews = new int[15];
-	static boolean haveSetCard=false;
+	static boolean haveSetCard = false;
 	
 	public static ExecutorService pool = Executors.newSingleThreadExecutor();
 	
@@ -24,21 +23,13 @@ public class Server {
 
 	public static void main(String[] args)
 	{
-		InetAddress local;
-		try{
-			local=InetAddress.getLocalHost();
-			System.out.println(local);
-		}
-		catch(Exception e){
-			System.out.println(e);
-		}
 		initCards();
 		initViews();
-		haveSetCard=true;
+		haveSetCard = true;
 		try {
 			server = new ServerSocket(serverPort);
 			new FrozenThread().start();
-			
+			new ActiveThread().start();
 			while (true)
 			{
 				Socket client = server.accept();
@@ -323,12 +314,34 @@ class FrozenThread extends Thread{
 	}
 }
 
+class ActiveThread extends Thread{
+	public void run(){
+		while(true){
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			for(LoopThread lp : Server.clients){
+				if (!lp.active){
+					lp.alive = false;
+				}else{
+					lp.active = false;
+				}
+			}
+		}
+	}
+}
+
 class LoopThread extends Thread{
 
 	long time = 0;
 	Socket client = null;
 	boolean frozen = false;
-
+	boolean active = false;
+	boolean alive = true;
+	
 	public LoopThread(Socket s, long t)
 	{
 		this.time = t;
@@ -343,12 +356,21 @@ class LoopThread extends Thread{
 			output = new PrintWriter(client.getOutputStream(),	true);
 			initGame(output);
 			while (true) {
+				if(!alive){
+					endMessage(output);
+					input.close();
+					output.close();
+					Server.clients.remove(this);
+					client.close();
+					return;
+				}
 				try {
 					Thread.sleep(time);
 					input = new BufferedReader(new InputStreamReader(client.getInputStream()));
 					output = new PrintWriter(client.getOutputStream(),	true);
 					while (input.ready())
 					{
+						active=true;
 						char task = (char)input.read();
 						input.read();
 						switch (task)
@@ -384,9 +406,10 @@ class LoopThread extends Thread{
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
+							output.close();
 							Server.clients.remove(client);
 							System.out.println(Server.clients.size());
-							output.close();
+							client.close();
 							return;
 						}
 					}
@@ -416,9 +439,8 @@ class LoopThread extends Thread{
 
 	void endMessage(PrintWriter output) throws IOException
 	{
-		output.println('E');
+		output.println("E");
 		System.out.println('E');
-		client.close();
 	}
 
 	void updateScore(PrintWriter output, int[] set)
