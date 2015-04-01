@@ -453,7 +453,7 @@ class LoopThread extends Thread{
 			s.append(l.client.getLocalAddress());
 			s.append("\t\tScore: ");
 			s.append(l.score);
-			s.append('\n');
+			s.append('b');
 		}
 		output.println(s.toString());
 		System.out.println(s.toString());
