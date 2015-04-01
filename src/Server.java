@@ -300,7 +300,7 @@ class FrozenThread extends Thread{
 				for (LoopThread lp : Server.clients)
 				{
 					Socket client = lp.client;
-					System.out.println(client.toString() + "M");
+					System.out.println(client.toString() + " M");
 					try {
 						PrintWriter output = new PrintWriter(client.getOutputStream(),	true);
 						output.println("M");
@@ -401,6 +401,12 @@ class LoopThread extends Thread{
 								Server.updateView(views);
 							}
 							break;
+						case 'B':
+							scoreMessage(output);
+							break;
+						case 'N':
+							score = Integer.parseInt(input.readLine());
+							break;
 						case 'E':
 							endMessage(output);
 							try {
@@ -412,12 +418,6 @@ class LoopThread extends Thread{
 							Server.clients.remove(client);
 							System.out.println(Server.clients.size());
 							client.close();
-							return;
-						case 'B':
-							scoreMessage(output);
-							return;
-						case 'N':
-							score = Integer.parseInt(input.readLine());
 							return;
 						}
 					}
