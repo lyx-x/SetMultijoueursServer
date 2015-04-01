@@ -415,7 +415,7 @@ class LoopThread extends Thread{
 								e.printStackTrace();
 							}
 							output.close();
-							Server.clients.remove(client);
+							Server.clients.remove(this);
 							System.out.println(Server.clients.size());
 							client.close();
 							return;
@@ -447,13 +447,13 @@ class LoopThread extends Thread{
 
 	private void scoreMessage(PrintWriter output) {
 		StringBuilder s = new StringBuilder();
-		s.append("B ");
+		s.append('B');
 		for (LoopThread l : Server.clients)
 		{
 			s.append(l.client.getLocalAddress());
-			s.append(' ');
+			s.append("\tScore: ");
 			s.append(l.score);
-			s.append(' ');
+			s.append('\t');
 		}
 		output.println(s.toString());
 		System.out.println(s.toString());
