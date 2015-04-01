@@ -451,9 +451,9 @@ class LoopThread extends Thread{
 		for (LoopThread l : Server.clients)
 		{
 			s.append(l.client.getLocalAddress());
-			s.append("\tScore: ");
+			s.append("\t\tScore: ");
 			s.append(l.score);
-			s.append('\t');
+			s.append('\n');
 		}
 		output.println(s.toString());
 		System.out.println(s.toString());
