@@ -1,0 +1,143 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[paper=a4, french]{scrartcl} % A4 paper and 11pt font size
+
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage{fourier} % Use the Adobe Utopia font for the document - comment this line to return to the LaTeX default
+\usepackage[francais]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{envmath}
+\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+
+\usepackage{sectsty} % Allows customizing section commands
+\allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
+
+\usepackage{fancyhdr} % Custom headers and footers
+\pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
+\fancyhead{} % No page header - if you want one, create it in the same way as the footers below
+\fancyfoot[L]{} % Empty left footer
+\fancyfoot[C]{} % Empty center footer
+\fancyfoot[R]{\thepage} % Page numbering for right footer
+\renewcommand{\headrulewidth}{0pt} % Remove header underlines
+\renewcommand{\footrulewidth}{0pt} % Remove footer underlines
+\setlength{\headheight}{13.6pt} % Customize the height of the header
+
+\numberwithin{equation}{section} % Number equations within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section} % Number figures within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height
+
+\title{	
+\normalfont \normalsize 
+\textsc{Ecole Polytechnique} \\ [25pt] % Your university, school and/or department name(s)
+\horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
+\huge Pyramide des Ages \\ % The assignment title
+\horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+}
+
+\author{Zhixing CAO, Yuxiang LI} % Your name
+
+\date{\normalsize\today} % Today's date or a custom date
+
+\begin{document}
+
+\setlength\parindent{12pt}
+
+\maketitle % Print the title
+
+% + - = ! / ( ) [ ] < > | ' :
+
+%----------------------------------------------------------------------------------------
+%	Introduction
+%----------------------------------------------------------------------------------------
+
+\section{Introduction}
+
+Le projet consiste à développer une application sur Android en appliquant la programmation concurrente et réalisant éventuellement un environement serveur-client. Le jeu Set est un jeu de cartes constitué de 81 cartes toutes différentes qui se distinguent selon 4 caractéristiques: les couleurs, les formes, les remplissage et les nombres d'objet. Le but du jeu est de trouver 3 cartes qui ont des caractéristiques soit toutes les trois identiques, soit toutes les trois différents. Le jeu peut se jouer à un ou plusieurs jouers, à chaque tour, on dispose 12 cartes sur la table, et le premier joueur qui trouve un bon set de 3 cartes gagne et ces 3 cartes vont remplacer par 3 autre cartes. Si il n'y a pas de bon set parmi ces 12 cartes, on ajoute 3 cartes supplémentaires, commme le probabilité qu'un ensemble de 15 cartes différentes ne contienne aucun set est assez petit, on admet ici qu'il y a toujours un set parmi 15 cartes.
+
+%----------------------------------------------------------------------------------------
+%	Description du projet
+%----------------------------------------------------------------------------------------
+
+\section{Description du projet}
+%-------------------------------------
+
+	\subsection{Android/Java}
+
+La partie Android consiste principalement 2 parties: les classes 'Card' et 'CardView' et le 'mainActivity'.
+
+\begin{itemize}
+\item Class 'Card' et 'CardView'
+Dans l'écran, on a un tableau de 16 cases de class 'CardView' qui gérer les dispositions des cartes. Dans chaque case, on peut déposer soit une carte définite par la class 'Card', soit une carte spéciale qui illustre le temps passé, le score et le bon set que l'on vient de trouver.
+Chaque carte est caractérisé par 4 chiffres qui représentent les 4 caractéristiques et également un entier entre 0 et 80 qui encode ces 4 chiffre. 
+\item MainActivity
+Le 'MainActivity' se charge d'interagir avec l'utilisateur. Il permet d'augmenter ou diminuer le score, changer les couleurs des 'CardView' et remplacer les cartes selon les cartes choisits par l'utilisateur.
+\end{itemize}
+ 
+%-------------------------------------
+	\subsection{Serveur}
+
+Le jeu par multijouer se réalise plutôt avec le serveur. Dès que le mode 'multijoueur' est choisit, l'appareil local ne distribue plus les cartes ni changer des score. En revanceh, on écoute éternellement le serveur. Et le serveur va envoyer les messages qui indiquent les changements des cartes et les renouvellement des scores à chaque clients.
+
+
+%----------------------------------------------------------------------------------------
+%	Description du projet
+%----------------------------------------------------------------------------------------
+
+\section{Mécanisme}
+
+%-------------------------------------
+	\subsection{Le jeu}
+
+		\subsubsection{Le tas de carte}
+Dès que le jeu commence, on crée un tas de 81 cartes différents et ces 81 cartes sont triés aléatoirement. Au début, on mets les premières douze cartes sur le table, et on prend toujours la première carte dans le tas pour renouveller une cartes sur le table.
+
+		\subsubsection{Le design de carte}
+Le tas de cartes est une liste de class 'Carte' qui répresente chaque caractéristique des cartes par 4 numbres différents. Et c'est dans le class 'CardView' qui permet de décoder ces chiffres et déssiner les cartes sur le table.
+Chaque 'CardView' correspond à un case de table et contient une carte, dès que la carte est mis. La class 'CardView' commence à désigner la carte selon ses caractéristique.
+
+		\subsubsection{Le judgement de set}
+A chaque fois quand il y a trois cartes séléctionnées, la fonction 'haveSet' dans 'mainActivity' judge automatiquement si ces trois cartes formant un bon set et changer les couleurs de ces cartes, le score et changer ou bloquer les trois cartes selon le résultat.
+ 
+ 
+%------------------------------------------------
+	\subsection{Communication}
+
+En mode multijoueur, ce n'est plus l'appareil qui crée le tas de carte et renouveller le score. Par contre, le designe de carte et le judgement de set se faisent toujours localement.
+		\subsubsection{Serveur}
+La taches de serveur se répart principalement en parties:
+	\begin{itemize}
+	\item Initialiser le jeu.
+	Cette fois-ci, c'est le serveur qui crée le tas des cartes. Ou plus précisément, 81 entiers différents entre 0 et 80.
+	\item Envoyer et reçevoir les messages de chaque clients
+	Pour chaque client, on crée ici un 'thread' qui permet de commniquer avec lui. 
+	\end{itemize}
+	
+		\subsubsection{Client}
+	Le côté client est plus simple. Selon les messages envoyés par le serveur, chaque client change les cartes, renouveller le score ou débloquer les cartes.
+	Par contre, quand l'utlisateur a choisit 3 cartes, le judgement de set se fait par le client. Et on bloque les cartes immédiatement si ils ne sont pas les bonnes cartes. Sinon, on envoie les 'code' des ces trois cartes à serveurs. C'est-à-dire quand le serveur a reçu un set, il est admis que c'est un bon set et le serveur ne judge pas.
+	
+	%----------------------------------------------------------------------------------------
+%	Description du projet
+%----------------------------------------------------------------------------------------
+
+\section{Réalisation}
+
+%-------------------------------------
+	\subsubsection{Le tas de carte}
+	Pour créer le tas de carte, on veut tirer aléatoirement les 81 entiers entre 0 et 80 qui encode les 81 cartes. Pour faire cela, on a d'abord crée 81 entiers au hasard par la méthode 'random'. Et puis, en gardant les indices de ces 81 entiers, on les trie en ordre croissant. Et comme cela, les indices de ces entiers répartiront aléatoirement. Après en décodant ces entiers, on a bien un tas de carte 'aléatoir'.
+	
+	\subsubsection{Handler}
+%----------------------------------------------------------------------------------------
+
+\end{document}
