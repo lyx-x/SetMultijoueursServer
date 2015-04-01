@@ -11,6 +11,9 @@
 \usepackage{amsmath,amsfonts,amsthm} % Math packages
 \usepackage{envmath}
 \usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+\usepackage{colortbl}
+
+\definecolor{bg}{RGB}{235,235,235}
 
 \usepackage{sectsty} % Allows customizing section commands
 \allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
@@ -30,6 +33,7 @@
 \numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
 
 \setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+\newcommand{\class}[1]{\colorbox{bg}{\textcolor{red}{\usefont{OT1}{cmtt}{m}{n}#1}}}
 
 %----------------------------------------------------------------------------------------
 %	TITLE SECTION
@@ -41,7 +45,7 @@
 \normalfont \normalsize 
 \textsc{Ecole Polytechnique} \\ [25pt] % Your university, school and/or department name(s)
 \horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
-\huge Pyramide des Ages \\ % The assignment title
+\huge Set multijoueurs \\ % The assignment title
 \horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
 }
 
@@ -63,72 +67,90 @@
 
 \section{Introduction}
 
-Le projet consiste à développer une application sur Android en appliquant la programmation concurrente et réalisant éventuellement un environement serveur-client. Le jeu Set est un jeu de cartes constitué de 81 cartes toutes différentes qui se distinguent selon 4 caractéristiques: les couleurs, les formes, les remplissage et les nombres d'objet. Le but du jeu est de trouver 3 cartes qui ont des caractéristiques soit toutes les trois identiques, soit toutes les trois différents. Le jeu peut se jouer à un ou plusieurs jouers, à chaque tour, on dispose 12 cartes sur la table, et le premier joueur qui trouve un bon set de 3 cartes gagne et ces 3 cartes vont remplacer par 3 autre cartes. Si il n'y a pas de bon set parmi ces 12 cartes, on ajoute 3 cartes supplémentaires, commme le probabilité qu'un ensemble de 15 cartes différentes ne contienne aucun set est assez petit, on admet ici qu'il y a toujours un set parmi 15 cartes.
+Ce projet consiste à développer une application sur Android en appliquant la programmation concurrente pour réaliser une communication serveur-client. Cette application permet de jouer un jeu appelé \textbf{Set} soit en mode sole, soit un multijoueur. On présentera d'abord la règle du jeu et leur correspondance en terme de Java ou Android. On expliquera ensuite plus en détail la réalisation de tous les modules nécessaires à ce jeu, on verra en quoi la programmation multithread permet d'avoir une meilleure performance de l'application.
 
 %----------------------------------------------------------------------------------------
-%	Description du projet
+%	Protocole
 %----------------------------------------------------------------------------------------
 
-\section{Description du projet}
-%-------------------------------------
-
-	\subsection{Android/Java}
-
-La partie Android consiste principalement 2 parties: les classes 'Card' et 'CardView' et le 'mainActivity'.
-
-\begin{itemize}
-\item Class 'Card' et 'CardView'
-Dans l'écran, on a un tableau de 16 cases de class 'CardView' qui gérer les dispositions des cartes. Dans chaque case, on peut déposer soit une carte définite par la class 'Card', soit une carte spéciale qui illustre le temps passé, le score et le bon set que l'on vient de trouver.
-Chaque carte est caractérisé par 4 chiffres qui représentent les 4 caractéristiques et également un entier entre 0 et 80 qui encode ces 4 chiffre. 
-\item MainActivity
-Le 'MainActivity' se charge d'interagir avec l'utilisateur. Il permet d'augmenter ou diminuer le score, changer les couleurs des 'CardView' et remplacer les cartes selon les cartes choisits par l'utilisateur.
-\end{itemize}
- 
-%-------------------------------------
-	\subsection{Serveur}
-
-Le jeu par multijouer se réalise plutôt avec le serveur. Dès que le mode 'multijoueur' est choisit, l'appareil local ne distribue plus les cartes ni changer des score. En revanceh, on écoute éternellement le serveur. Et le serveur va envoyer les messages qui indiquent les changements des cartes et les renouvellement des scores à chaque clients.
-
-
-%----------------------------------------------------------------------------------------
-%	Description du projet
-%----------------------------------------------------------------------------------------
-
-\section{Mécanisme}
+\section{Principe du jeu et protocole de communication }
 
 %-------------------------------------
-	\subsection{Le jeu}
+\subsection{Comment jouer le jeu ?}
 
-		\subsubsection{Le tas de carte}
-Dès que le jeu commence, on crée un tas de 81 cartes différents et ces 81 cartes sont triés aléatoirement. Au début, on mets les premières douze cartes sur le table, et on prend toujours la première carte dans le tas pour renouveller une cartes sur le table.
+\subsubsection{Présentation}
+Le jeu Set est un jeu de cartes constitué de 81 cartes toutes différentes qui se distinguent selon 4 caractéristiques : la couleur, la forme, le type de remplissage et le nombre d'objets. Le but du jeu est de trouver une ensemble de 3 cartes qui ont des caractéristiques soit toutes les trois identiques, soit toutes les trois différentes. Le jeu peut se jouer à un ou plusieurs joueurs, à chaque tour, on dispose 12 cartes sur la table, et le premier joueur qui trouve un bon set de 3 cartes gagne et ces 3 cartes vont être remplacés par 3 autre. S'il n'y a pas de bon set parmi ces 12 cartes, on rajoute 3 cartes supplémentaires en supposant qu'il y ait toujours un set parmi elles.
 
-		\subsubsection{Le design de carte}
-Le tas de cartes est une liste de class 'Carte' qui répresente chaque caractéristique des cartes par 4 numbres différents. Et c'est dans le class 'CardView' qui permet de décoder ces chiffres et déssiner les cartes sur le table.
-Chaque 'CardView' correspond à un case de table et contient une carte, dès que la carte est mis. La class 'CardView' commence à désigner la carte selon ses caractéristique.
+\subsubsection{Choisir les cartes}
+Le choix des cartes se fait l'une après l'autre, les cartes entourées du bleus sont choisis, reclicker sur la carte déjà choisie permet de l'enveler du set. Une fois qu'on a 3 cartes, on soumet directement la solution.
 
-		\subsubsection{Le judgement de set}
-A chaque fois quand il y a trois cartes séléctionnées, la fonction 'haveSet' dans 'mainActivity' judge automatiquement si ces trois cartes formant un bon set et changer les couleurs de ces cartes, le score et changer ou bloquer les trois cartes selon le résultat.
+\subsubsection{Score et pénalité}
+En mode solo, le set est jugé sur place, tout set correct sera coloré en vert et incorrect en rouge. La couleur disparaît après une petite durée. Une fois que le set est jugé, on ne peut plus le toucher avant la disparition de la couleur. Le set correct sera ensuite remplacé par 3 nouvelles cartes. Un set correct rapporte 10 points et on enlève 2 points pour un faux set.
  
  
 %------------------------------------------------
-	\subsection{Communication}
+\subsection{Comment communiquer avec l'autre machine ?}
 
-En mode multijoueur, ce n'est plus l'appareil qui crée le tas de carte et renouveller le score. Par contre, le designe de carte et le judgement de set se faisent toujours localement.
-		\subsubsection{Serveur}
-La taches de serveur se répart principalement en parties:
-	\begin{itemize}
-	\item Initialiser le jeu.
-	Cette fois-ci, c'est le serveur qui crée le tas des cartes. Ou plus précisément, 81 entiers différents entre 0 et 80.
-	\item Envoyer et reçevoir les messages de chaque clients
-	Pour chaque client, on crée ici un 'thread' qui permet de commniquer avec lui. 
-	\end{itemize}
+\subsubsection{Serveur}
+Le serveur gère tout le déroulement du jeu en suivant le protocle suivant : 
+\begin{itemize}
+\item Initialiser le jeu : initialiser les cartes
+\item Changer les cartes 
+\item Attribuer les points suivant l'ordre d'arrivée du message : le deuxième ne reçoit rien
+\item Débloquer le jeu si tous les joueurs sont bloqués
+\item Faire sortir un joueur après une longue durée de silence
+\end{itemize}
 	
-		\subsubsection{Client}
-	Le côté client est plus simple. Selon les messages envoyés par le serveur, chaque client change les cartes, renouveller le score ou débloquer les cartes.
-	Par contre, quand l'utlisateur a choisit 3 cartes, le judgement de set se fait par le client. Et on bloque les cartes immédiatement si ils ne sont pas les bonnes cartes. Sinon, on envoie les 'code' des ces trois cartes à serveurs. C'est-à-dire quand le serveur a reçu un set, il est admis que c'est un bon set et le serveur ne judge pas.
+\subsubsection{Client}
+Le côté client est plus simple. 
+\begin{itemize}
+\item Recevoir les message : changer les cartes, renouveller le score ou débloquer le jeu
+\item Juger le set comme dans le mode solo
+\item Se bloquer pour un faux set et soumettre le résultat pour un bon
+\item Quitter le jeu en prévenant le serveur
+\end{itemize}
+
 	
-	%----------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------
 %	Description du projet
+%----------------------------------------------------------------------------------------
+
+\section{Du côté de Java}
+%-------------------------------------
+
+\subsection{Android}
+
+La partie Android se divise principalement en 2 parties : la class \class{CardView} correspondant à View de \textbf{MVC} et \class{MainActivity} jouant à la fois le rôle de Model et de Controller.
+
+\begin{itemize}
+\item \class{CardView} et \class{Card}
+
+Bien qu'on n'ait que 81 cartes, on a choisi de les présenter avec une class au lieu d'un entier, ce choix permet d'avoir une plus grande liberté et clarté du code, la méthode \class{hashCode} et le constructeur permettent de créer une bijection entre les deux espaces d'états pour faciliter la communication. Tandis que \class{CardView}, qui implémente la classe \class{View} gère l'affichage des cartes suivant les paramètres (membres de la classe) : carte de score, carte gêlée, carte correcte, carte choisie, etc. En conséquence, les \class{OnClickListener} sont directement associés à ces \class{CardView}, ce qui évite de compliquer le traitement des événements.
+
+\item \class{MainActivity}
+
+Cette classe se charge d'interagir avec l'utilisateur et de distribuer le travail au sein de l'application (communication Socket, calcul, affichage). Il permet d'augmenter ou diminuer le score, changer les couleurs des 'CardView' et remplacer les cartes selon les cartes choisits par l'utilisateur. Plusieurs classes du type \class{Thread} et \class{Runnable} sont définies dans cette partie en rendant l'application multi-tâches.
+
+\end{itemize}
+ 
+%-------------------------------------
+\subsection{Serveur}
+
+Le code du serveur est réalisé en-dehors de l'application Android par une nouvelle classe : \class{Server}. Cette classe gère la création d'un nouveau \class{Thread} à chaque nouveau joueur, l'attribution du point, le bon déroulement du jeu. Les différents messages sont listés ci-dessous : 
+
+\begin{itemize}
+\item (S)Modifier les cartes : V{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
+\item (S)Incrémenter le score : S{\textvisiblespace}$card_1${\textvisiblespace}$card_2${\textvisiblespace}$card_3$
+\item (S)Faire sortir le joueur : E
+\item (C)Demander le redémarrage : R
+\item (C)Informer sur l'état de blocage : F
+\item (C)Soumettre le résultat : S{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
+\item (C)Quitter le jeu : E
+\end{itemize}
+
+
+%----------------------------------------------------------------------------------------
+%	Détail de réalisation
 %----------------------------------------------------------------------------------------
 
 \section{Réalisation}
