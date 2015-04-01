@@ -28,6 +28,7 @@ public class Server {
 		haveSetCard = true;
 		try {
 			server = new ServerSocket(serverPort);
+			System.out.println(server.getInetAddress());
 			new FrozenThread().start();
 			new ActiveThread().start();
 			while (true)
@@ -318,7 +319,7 @@ class ActiveThread extends Thread{
 	public void run(){
 		while(true){
 			try {
-				Thread.sleep(20000);
+				Thread.sleep(60000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -339,8 +340,9 @@ class LoopThread extends Thread{
 	long time = 0;
 	Socket client = null;
 	boolean frozen = false;
-	boolean active = false;
+	boolean active = true;
 	boolean alive = true;
+	int score = 0;
 	
 	public LoopThread(Socket s, long t)
 	{
@@ -356,7 +358,7 @@ class LoopThread extends Thread{
 			output = new PrintWriter(client.getOutputStream(),	true);
 			initGame(output);
 			while (true) {
-				if(!alive){
+				if (!alive){
 					endMessage(output);
 					input.close();
 					output.close();
@@ -370,7 +372,7 @@ class LoopThread extends Thread{
 					output = new PrintWriter(client.getOutputStream(),	true);
 					while (input.ready())
 					{
-						active=true;
+						active = true;
 						char task = (char)input.read();
 						input.read();
 						switch (task)
@@ -411,6 +413,12 @@ class LoopThread extends Thread{
 							System.out.println(Server.clients.size());
 							client.close();
 							return;
+						case 'B':
+							scoreMessage(output);
+							return;
+						case 'N':
+							score = Integer.parseInt(input.readLine());
+							return;
 						}
 					}
 				} catch (Exception e) {
@@ -437,13 +445,27 @@ class LoopThread extends Thread{
 		}
 	}
 
-	void endMessage(PrintWriter output) throws IOException
+	private void scoreMessage(PrintWriter output) {
+		StringBuilder s = new StringBuilder();
+		s.append("B ");
+		for (LoopThread l : Server.clients)
+		{
+			s.append(l.client.getLocalAddress());
+			s.append(' ');
+			s.append(l.score);
+			s.append(' ');
+		}
+		output.println(s.toString());
+		System.out.println(s.toString());
+	}
+
+	private void endMessage(PrintWriter output) throws IOException
 	{
 		output.println("E");
 		System.out.println('E');
 	}
 
-	void updateScore(PrintWriter output, int[] set)
+	private void updateScore(PrintWriter output, int[] set)
 	{
 		StringBuilder s = new StringBuilder();
 		s.append('S');
@@ -456,7 +478,7 @@ class LoopThread extends Thread{
 		System.out.println(s.toString());
 	}
 
-	void initGame(PrintWriter output)
+	private void initGame(PrintWriter output)
 	{
 		StringBuilder s = new StringBuilder();
 		s.append('V');
