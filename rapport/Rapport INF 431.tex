@@ -135,11 +135,14 @@ Cette classe se charge d'interagir avec l'utilisateur et de distribuer le travai
 Le code du serveur est réalisé en-dehors de l'application Android dans une nouvelle classe : \class{Server}. Cette classe gère la création d'un nouveau \class{Thread} pour chaque nouveau joueur, l'attribution du point, etc.. Les différents messages sont listés ci-dessous : 
 
 \begin{itemize}
-\item (Serveur) Modifier les cartes : V{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
+\item (Serveur) Modifier les cartes : V{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$ ...
 \item (Serveur) Incrémenter le score : S{\textvisiblespace}$card_1${\textvisiblespace}$card_2${\textvisiblespace}$card_3$
+\item (Serveur) Afficher le scoreboard : B{\textvisiblespace}$score_1${\textvisiblespace}$score_2$ ...
 \item (Serveur) Faire sortir le joueur : E
 \item (Client) Demander le redémarrage : R
 \item (Client) Informer sur l'état de blocage : F
+\item (Client) Demander le scoreboard : B
+\item (Client) Actualiser le score : B{\textvisiblespace}$score$
 \item (Client) Soumettre le résultat : S{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
 \item (Client) Quitter le jeu : E
 \end{itemize}
