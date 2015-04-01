@@ -67,7 +67,7 @@
 
 \section{Introduction}
 
-Ce projet consiste à développer une application sur Android en appliquant la programmation concurrente pour réaliser une communication serveur-client. Cette application permet de jouer un jeu appelé \textbf{Set} soit en mode sole, soit un multijoueur. On présentera d'abord la règle du jeu et leur correspondance en terme de Java ou Android. On expliquera ensuite plus en détail la réalisation de tous les modules nécessaires à ce jeu, on verra en quoi la programmation multithread permet d'avoir une meilleure performance de l'application.
+Ce projet consiste à développer une application sur Android en appliquant la programmation concurrente pour réaliser une communication serveur-client. Cette application permet de jouer un jeu appelé \textbf{Set} soit en mode solo, soit un multijoueur. On présentera d'abord la règle du jeu et leur correspondance en terme de Java ou Android. On expliquera ensuite plus en détail la réalisation de tous les modules nécessaires à ce jeu, on verra en quoi la programmation multithread permet d'avoir une meilleure performance de l'application.
 
 %----------------------------------------------------------------------------------------
 %	Protocole
@@ -89,10 +89,10 @@ En mode solo, le set est jugé sur place, tout set correct sera coloré en vert 
  
  
 %------------------------------------------------
-\subsection{Comment communiquer avec l'autre machine ?}
+\subsection{Comment communiquer avec le serveur ?}
 
 \subsubsection{Serveur}
-Le serveur gère tout le déroulement du jeu en suivant le protocle suivant : 
+Le serveur gère tout le déroulement du jeu en mode multijoueur en suivant le protocle suivant : 
 \begin{itemize}
 \item Initialiser le jeu : initialiser les cartes
 \item Changer les cartes 
@@ -125,7 +125,7 @@ La partie Android se divise principalement en 2 parties : la class \class{CardVi
 \begin{itemize}
 \item \class{CardView} et \class{Card}
 
-Bien qu'on n'ait que 81 cartes, on a choisi de les présenter avec une class au lieu d'un entier, ce choix permet d'avoir une plus grande liberté et clarté du code, la méthode \class{hashCode} et le constructeur permettent de créer une bijection entre les deux espaces d'états pour faciliter la communication. Tandis que \class{CardView}, qui implémente la classe \class{View} gère l'affichage des cartes suivant les paramètres (membres de la classe) : carte de score, carte gêlée, carte correcte, carte choisie, etc. En conséquence, les \class{OnClickListener} sont directement associés à ces \class{CardView}, ce qui évite de compliquer le traitement des événements.
+Bien qu'on n'ait que 81 cartes, on a choisi de les modéliser avec une class au lieu d'un entier, ce choix permet d'avoir une plus grande liberté et clarté du code, la méthode \class{hashCode} et le constructeur permettent de créer une bijection entre les deux espaces d'états pour faciliter la communication. Tandis que \class{CardView}, qui implémente la classe \class{View} gère l'affichage des cartes suivant les paramètres (membres de la classe) : carte de score, carte gêlée, carte correcte, carte choisie, etc. En conséquence, les \class{OnClickListener} sont directement associés à ces \class{CardView}, ce qui évite de compliquer le traitement des événements.
 
 \item \class{MainActivity}
 
@@ -139,13 +139,13 @@ Cette classe se charge d'interagir avec l'utilisateur et de distribuer le travai
 Le code du serveur est réalisé en-dehors de l'application Android par une nouvelle classe : \class{Server}. Cette classe gère la création d'un nouveau \class{Thread} à chaque nouveau joueur, l'attribution du point, le bon déroulement du jeu. Les différents messages sont listés ci-dessous : 
 
 \begin{itemize}
-\item (S)Modifier les cartes : V{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
-\item (S)Incrémenter le score : S{\textvisiblespace}$card_1${\textvisiblespace}$card_2${\textvisiblespace}$card_3$
-\item (S)Faire sortir le joueur : E
-\item (C)Demander le redémarrage : R
-\item (C)Informer sur l'état de blocage : F
-\item (C)Soumettre le résultat : S{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
-\item (C)Quitter le jeu : E
+\item (Serveur) Modifier les cartes : V{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
+\item (Serveur) Incrémenter le score : S{\textvisiblespace}$card_1${\textvisiblespace}$card_2${\textvisiblespace}$card_3$
+\item (Serveur) Faire sortir le joueur : E
+\item (Client) Demander le redémarrage : R
+\item (Client) Informer sur l'état de blocage : F
+\item (Client) Soumettre le résultat : S{\textvisiblespace}$pos_1${\textvisiblespace}$card_1${\textvisiblespace }$pos_2${\textvisiblespace}$card_2${\textvisiblespace}$pos_3${\textvisiblespace}$card_3$
+\item (Client) Quitter le jeu : E
 \end{itemize}
 
 
@@ -153,13 +153,41 @@ Le code du serveur est réalisé en-dehors de l'application Android par une nouv
 %	Détail de réalisation
 %----------------------------------------------------------------------------------------
 
-\section{Réalisation}
+\section{Réalisation et détails techniques}
 
 %-------------------------------------
-	\subsubsection{Le tas de carte}
-	Pour créer le tas de carte, on veut tirer aléatoirement les 81 entiers entre 0 et 80 qui encode les 81 cartes. Pour faire cela, on a d'abord crée 81 entiers au hasard par la méthode 'random'. Et puis, en gardant les indices de ces 81 entiers, on les trie en ordre croissant. Et comme cela, les indices de ces entiers répartiront aléatoirement. Après en décodant ces entiers, on a bien un tas de carte 'aléatoir'.
+
+\subsection{Le tas des cartes}
+Pour créer le tas de carte, on tire aléatoirement 81 entiers entre 0 et 99 à qui on associe les 81 cartes. Et puis, en triant toutes ces paires d'entiers par leur valeur aléatoire, on a une liste des cartes mélangées. 
 	
-	\subsubsection{Handler}
+\subsection{Vérifier un set et \class{Class<?>}}
+La vérification d'un set nécessite de regarder tous les 4 membres de la cartes. Une vérification manuelle est possible, mais cette méthode n'est pas facilement reproductible. On a utilisé ici le mécanisme de réflexion qui permet de trouver tous les membres d'une classe automatiquement par la méthode \class{getDeclaredFields}.
+
+\subsection{Handler}
+L'application Android limite l'accès à l'interface graphique, toutes les modifications se font directement dans le Thread UI. On utilise donc le mécanisme de Looper / Handler pour gérer toutes les demandes de modifications venant d'autre Thread.
+
+\subsection{File d'attente et \class{ExecutorService}}
+Le traitement de soumission est quelques choses d'important, car il faut s'assurer que la deuxième soumission n'a pas de points. Pour cela, on utilise une file de travail pour traiter toutes les soumissions. Il existe dans Java une classe \class{ExecutorService} pour créer un nombre limité de Thread de travail, on a donc utilisé \class{Executors.newSingleThreadExecutor} pour que les soumissions soient traitées l'une après l'autre.
+
+\subsection{\class{Callable<T>} et \class{Future<T>}}
+Le résultat d'analyse du résultat doit être vu par le reste du programme. Générallement on utilise une variable globale pour faire sortir une valeur d'un Thread. Mais une variable ne suffit pas, car nous avons beaucoup de soumissions à traiter et on ne sais pas quand est-ce que la valeur précédent est lue. En alternative, Java propose une interface \class{Callable<T>} pour retourner une valeur de type \class{Future<T>}. Cette valeur sera ensuite utilisée pour 
+
+\subsection{Thread retardé et en boucle}
+
+
+\subsection{Thread Client}
+
+
+\subsection{Deuxième tour}
+
+
+\subsection{Débloquer les joueurs}
+
+
+\subsection{Faire sortir un joueur}
+
+
+
 %----------------------------------------------------------------------------------------
 
 \end{document}
