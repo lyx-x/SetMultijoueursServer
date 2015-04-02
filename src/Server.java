@@ -339,9 +339,9 @@ class LoopThread extends Thread{
 
 	long time = 0;
 	Socket client = null;
-	boolean frozen = false;
-	boolean active = true;
-	boolean alive = true;
+	volatile boolean frozen = false;
+	volatile boolean active = true;
+	volatile boolean alive = true;
 	int score = 0;
 	
 	public LoopThread(Socket s, long t)
