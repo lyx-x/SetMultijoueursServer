@@ -1,5 +1,0 @@
-\beamer@endinputifotherversion {3.24pt}
-\beamer@sectionintoc {1}{Introduction}{2}{0}{1}
-\beamer@sectionintoc {2}{Impl\IeC {\'e}mentation en Java}{5}{0}{2}
-\beamer@sectionintoc {3}{D\IeC {\'e}tails techniques}{9}{0}{3}
-\beamer@sectionintoc {4}{D\IeC {\'e}monstration}{11}{0}{4}
